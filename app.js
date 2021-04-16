@@ -58,9 +58,27 @@ app.post("/user/login", async (req, res) => {
   }
 });
 
-app.get("/user/profile", (req, res) => {});
+app.get("/user/profile", async (req, res) => {
+    res.send(req.user);
+});
 
-app.put("/user/profile", (req, res) => {});
+app.put("/user/profile", async (req, res) => {
+    const updates = Object.keys(req.body)
+    const allowedUpdates = ['username', 'email', 'password', 'mobile']
+    const isValidOperation = updates.every((update) => allowedUpdates.includes(update))
+
+    if (!isValidOperation) {
+        return res.status(400).send({ error: 'Invalid updates!' })
+    }
+
+    try {
+        updates.forEach((update) => req.user[update] = req.body[update])
+        await req.user.save()
+        res.send(req.user)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+});
 
 app.listen(port, () => {
   console.log(`Server is up on port ${port}`);
