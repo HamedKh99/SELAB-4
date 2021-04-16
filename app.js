@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 require("./src/db/mongoose");
 
 const port = process.env.PORT || 8080;
@@ -8,8 +9,26 @@ const app = express();
 app.use(express.json());
 
 // API Gateway
-app.use((req, res, next) => {
-  if (req.path !== "/home") next();
+app.use(async (req, res, next) => {
+  if (req.path === "/user/signup" || req.path === "/user/login") next();
+  else {
+    try {
+      const token = req.header("Authorization").replace("Bearer ", "");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findOne({
+        _id: decoded._id,
+        "tokens.token": token,
+      });
+
+      if (!user) throw new Error();
+
+      req.token = token;
+      req.user = user;
+      next();
+    } catch (e) {
+      res.status(401).send({ error: "Please Authenticate" });
+    }
+  }
 });
 
 // Endpoints
