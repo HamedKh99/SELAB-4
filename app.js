@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 require("./src/db/mongoose");
+const User = require("./src/models/user");
 
 const port = process.env.PORT || 8080;
 
@@ -32,13 +33,30 @@ app.use(async (req, res, next) => {
 });
 
 // Endpoints
-app.get("/home", (req, res) => {
-  res.send("hello express!");
+app.post("/user/signup", async (req, res) => {
+  delete req.body.is_admin;
+  const user = new User(req.body);
+  try {
+    await user.save();
+    const token = await user.generateAuthToken();
+    res.status(201).send({ user, token });
+  } catch (e) {
+    res.status(400).send(e);
+  }
 });
 
-app.post("/user/signup", (req, res) => {});
-
-app.post("/user/login", (req, res) => {});
+app.post("/user/login", async (req, res) => {
+  try {
+    const user = await User.findByCredentials(
+      req.body.username,
+      req.body.password
+    );
+    const token = await user.generateAuthToken();
+    res.send({ user, token });
+  } catch (e) {
+    res.status(400).send(e);
+  }
+});
 
 app.get("/user/profile", (req, res) => {});
 
